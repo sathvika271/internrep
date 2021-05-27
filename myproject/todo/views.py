@@ -1,44 +1,69 @@
 from django.shortcuts import render, redirect
-from django.views.decorators.http import require_POST
 
-from .models import Todo
-from .forms import TodoForm
+from .models import Tasks
+from .forms import AddTaskForm
 
-
-# Create your views here.
 def index(request):
-    todo_list = Todo.objects.order_by('id')
 
-    form = TodoForm()
+    tasks = Tasks.objects.all()
+    form = AddTaskForm()
 
-    context = {'todo_list' : todo_list, 'form' : form}
+    context = {
+        'tasks' : tasks,
+        'form' : form,
+    }
 
     return render(request, 'todo/index.html', context)
-
-@require_POST
-def addTodo(request):
-    form = TodoForm(request.POST)
+def addTask(request):
+    
+    form = AddTaskForm(request.POST)
 
     if form.is_valid():
-        new_todo = Todo(text=request.POST['text'])
-        new_todo.save()
+        form.save()
 
-    return redirect('index')
+    return redirect('/')
 
-def completeTodo(request, todo_id):
-    todo = Todo.objects.get(pk=todo_id)
-    todo.complete = True
-    todo.save()
-
-    return redirect('index')
-
-def deleteCompleted(request):
-    Todo.objects.filter(complete__exact=True).delete()
-
-    return redirect('index')
-
-def deleteAll(request):
-    Todo.objects.all().delete()
-
-    return redirect('index')
+def deleteTask(request, id):
     
+    task = Tasks.objects.get(pk = id)
+
+    task.delete()
+
+    return redirect('/')
+def completedTask(request, id):
+    
+    task = Tasks.objects.get(pk = id)
+
+    task.completed = True
+    task.save()
+
+    return redirect('/')
+def updateTask(request, id):
+    
+    task = Tasks.objects.get(pk = id)
+    updateForm = AddTaskForm(instance = task)
+
+    if request.method == 'POST':
+        form = AddTaskForm(request.POST, instance = task)
+        if form.is_valid():
+            form.save()
+            return redirect('/')
+
+    context = {
+        'updateForm' : updateForm,
+        'key' : id,
+
+        'tasks' : Tasks.objects.all(),
+    }
+
+    return render(request, 'todo/index.html', context)
+def deleteAllCompleted(request):
+    
+    completedTasks = Tasks.objects.filter(completed__exact=True).delete()
+
+    return redirect('/')
+def deleteAll(request):
+    
+    Tasks.objects.all().delete()
+
+    return redirect('/')
